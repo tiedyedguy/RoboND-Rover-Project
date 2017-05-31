@@ -16,6 +16,7 @@ import json
 import pickle
 import matplotlib.image as mpimg
 import time
+import eventlet
 
 # Import functions for perception and decision making
 from perception import perception_step
@@ -49,32 +50,52 @@ class RoverState():
         self.steer = 0 # Current steering angle
         self.throttle = 0 # Current throttle value
         self.brake = 0 # Current brake value
-        self.nav_angles = None # Angles of navigable terrain pixels
-        self.nav_dists = None # Distances of navigable terrain pixels
         self.ground_truth = ground_truth_3d # Ground truth worldmap
-        self.mode = 'forward' # Current mode (can be forward or stop)
-        self.throttle_set = 0.2 # Throttle setting when accelerating
-        self.brake_set = 10 # Brake setting when braking
-        # The stop_forward and go_forward fields below represent total count
-        # of navigable terrain pixels.  This is a very crude form of knowing
-        # when you can keep going and when you should stop.  Feel free to
-        # get creative in adding new fields or modifying these!
-        self.stop_forward = 50 # Threshold to initiate stopping
-        self.go_forward = 500 # Threshold to go forward again
-        self.max_vel = 2 # Maximum velocity (meters/second)
-        # Image output from perception step
-        # Update this image to display your intermediate analysis steps
-        # on screen in autonomous mode
-        self.vision_image = np.zeros((160, 320, 3), dtype=np.float) 
-        # Worldmap
-        # Update this image with the positions of navigable terrain
-        # obstacles and rock samples
-        self.worldmap = np.zeros((200, 200, 3), dtype=np.float) 
+        self.vision_image = np.zeros((160, 320, 3), dtype=np.float) #Rover Vision
+        self.worldmap = np.zeros((200, 200, 3), dtype=np.float) #Worldmap
         self.samples_pos = None # To store the actual sample positions
         self.samples_found = 0 # To count the number of samples found
         self.near_sample = 0 # Will be set to telemetry value data["near_sample"]
         self.picking_up = 0 # Will be set to telemetry value data["picking_up"]
         self.send_pickup = False # Set to True to trigger rock pickup
+        self.nav_angle = 0 # Angles of navigable terrain pixels
+        self.throttle_set = 0.1 # Throttle setting when accelerating	
+        self.brake_set = 10 # Brake setting when braking
+        self.max_vel = 2.5 # Maximum velocity (meters/second)
+
+	#Here are the ones I've added
+
+        self.starting_pos = None #Starting location
+        self.mode_text = "Initializing" #Staring state of the rover
+        self.mapping_text = "" #Mapping text that gets overlayed on rover vision
+        self.debug_text = "" #Debug text that gets overlayed on rover vision
+        self.bad_pitch = 1.5 # Amount of pitch that stops mapping
+        self.bad_roll = 1.5 # Amount of roll that stops mapping
+        self.find_max_distance = 40 #Max distance in pixels that we believe the vision is correct
+        self.find_rock_max_distance = 60 #The max distance in pixels that we look for rocks.
+        self.close_pixs_for_wall_detection = 300  #How many navigable pixels are need to say we aren't at a wall
+        self.at_wall = False #Are we at a wall or no?
+        self.perfect_angle = 15 * np.pi / 180 #What is our perfect angle to stay along right wall?
+        self.last_pos = (0,0) #Last position we were at to check for being stuck
+        self.mode_before_stuck = "Initializing" #The last state we were at before being stuck so we go back to it
+        self.check_seconds = 15 #How often to check if we are stuck
+        self.stuck_check_time = int(time.time() + 30) #Variable that tells us the next time stamp to look for being stuck
+        self.stuck_check_distance = 0.3 #How far we have to travel to say we aren't stuck
+        self.crawl_vel = 0.8 #Max velocity while going to a goal
+        self.target_yaw_diff = 6 #The angle we allow us to be within before heading to a goal
+        self.target_rock_pos = (0,0) #The POS of the rock we are hunting down
+        self.got_the_goods = False #Do we have the rock?
+        self.samples_my_count = 0 #How many samples I have picked up 
+        self.set_pickup_protect = False #A protect boolean to avoid sending pickup too many times
+        self.unstuck_method = 0 #What method of unstuck are we on
+        self.distance_to_home_before_action = 8.0 #When we are in this range of home we go to it
+        self.distance_to_home_complete = 1.0 #When we are in this range of home we stop and end mission
+        self.final_time = 0 #Final time to home
+        self.last_state = "" #The last state we were in.
+        self.times_stuck = 0 #The number of times we got stuck 
+        self.goal_turning_speed = 9 #How fast we turn while goal hunting
+
+
 # Initialize our rover 
 Rover = RoverState()
 
@@ -97,7 +118,7 @@ def telemetry(sid, data):
         fps = frame_counter
         frame_counter = 0
         second_counter = time.time()
-    print("Current FPS: {}".format(fps))
+    #print("Current FPS: {}".format(fps))
 
     if data:
         global Rover
@@ -148,6 +169,7 @@ def connect(sid, environ):
         "get_samples",
         sample_data,
         skip_sid=True)
+    eventlet.sleep(0)
 
 def send_control(commands, image_string1, image_string2):
     # Define commands to be sent to the rover
@@ -166,12 +188,13 @@ def send_control(commands, image_string1, image_string2):
 
 # Define a function to send the "pickup" command 
 def send_pickup():
-    print("Picking up")
+    #print("Picking up")
     pickup = {}
     sio.emit(
         "pickup",
         pickup,
         skip_sid=True)
+    eventlet.sleep(0)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Remote Driving')
