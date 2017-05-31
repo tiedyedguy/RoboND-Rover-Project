@@ -19,6 +19,16 @@ You're reading it!
 ### Notebook Analysis
 #### 1. Run the functions provided in the notebook on test images (first with the test data provided, next on data you have recorded). Add/modify functions to allow for color selection of obstacles and rock samples.
 
+The main functions that I added from the base system were the obstacle threshold, the rock sample threshold and the rover_coords_close_enough function.
+
+The obstacle threshold function is just the opposite of the navigable threshold.
+
+The rock sample uses the cv2 library for finding a threshold and has a lower and upper bound but still the same as navigable.
+
+The rover_coords_close_enough function looks at each pixel in relation to the rover and eliminates ones that are "too far away."  I realized that the closer to the camera the more accurate we were so I limit how far we trust those pixels.
+
+Other than that the other functions are all straight from the lecture.
+
 #### 2. Populate the `process_image()` function with the appropriate analysis steps to map pixels identifying navigable terrain, obstacles and rock samples into a worldmap.  Run `process_image()` on your test data using the `moviepy` functions provided to create video output of your result. 
 
 I actually skipped the Notebook Analysis at first and went right to the Rover because I was having a difficult time with
@@ -64,6 +74,8 @@ The only time it would deviate is if it determines to be stuck or finds a sample
 Here's my Rover succesfully completeing the full mission:
 
 [![Watch it fly](http://img.youtube.com/vi/hz7pkGAQbP8/0.jpg)](http://www.youtube.com/watch?v=hz7pkGAQbP8 "Mars Rover - TieDyedGuy")
+
+The settings used are 1920 x 1080 windows mode on "Good" quality with an average FPS of 15.  It was ran on Ubuntu 16.04 64bit.
 
 The Rover works, but "slow" and "clunky."  What I mean is that I have the max velocity set low to keep it from missing things but it just moves slower.  There is a sweet spot between speed and not missing things that requires experimentation.
 
