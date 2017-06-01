@@ -20,7 +20,7 @@ def personality_output(Rover):
    if (Rover.mode_text == "Going Home"):
         print (text_out + "Man I'm tired after picking up all those six rocks. Time to go back home and await pick up.")
    if (Rover.mode_text == "At Home!"):
-        print (text_out = "I'm BACK. Ok NASA, ready for pick up!  NASA??? NASA???? HELLLLOOOOOOOO?!")
+        print (text_out + "I'm BACK. Ok NASA, ready for pick up!  NASA??? NASA???? HELLLLOOOOOOOO?!")
 
 #Move_Towards_Goal is when the Rover is given a goal to focus on. It will be either a rock sample or the home coordinates
 def move_towards_goal(Rover, pos):
